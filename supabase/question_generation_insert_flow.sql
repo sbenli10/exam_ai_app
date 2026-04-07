@@ -1,0 +1,113 @@
+-- AI soru üretim akışı için yardımcı indeksler ve örnek insert/update süreci.
+
+create index if not exists idx_questions_exam_subject_topic_normalized
+on public.questions (exam_id, subject_id, topic_id, normalized_stem);
+
+create index if not exists idx_question_generation_jobs_status_created_at
+on public.question_generation_jobs (status, created_at desc);
+
+create index if not exists idx_question_generation_jobs_exam_subject_topic
+on public.question_generation_jobs (exam_id, subject_id, topic_id);
+
+-- Edge Function akışı özetle şöyledir:
+--
+-- 1. question_generation_jobs tablosunda üretim işi açılır.
+-- 2. Gemini'ye sınav, ders, konu, ölçülmek istenen kazanım ve stil bilgisi gönderilir.
+-- 3. Üretilen sorular duplicate kontrolünden geçirilir.
+-- 4. Sorular is_verified = false olarak taslak kaydedilir.
+-- 5. Branş öğretmeni admin panelinden onay verince is_verified = true yapılır.
+--
+-- Örnek insert akışı:
+--
+-- begin;
+--
+-- insert into public.question_generation_jobs (
+--   exam_id,
+--   subject_id,
+--   topic_id,
+--   section_name,
+--   difficulty,
+--   question_style,
+--   target_count,
+--   batch_size,
+--   status,
+--   prompt_version,
+--   notes,
+--   created_by,
+--   started_at
+-- ) values (
+--   :exam_id,
+--   :subject_id,
+--   :topic_id,
+--   :section_name,
+--   :difficulty,
+--   :question_style,
+--   :target_count,
+--   :batch_size,
+--   'running',
+--   'gemini-v2',
+--   :measurement_focus,
+--   :created_by,
+--   now()
+-- ) returning id;
+--
+-- insert into public.questions (
+--   exam_id,
+--   subject_id,
+--   topic_id,
+--   question_text,
+--   option_a,
+--   option_b,
+--   option_c,
+--   option_d,
+--   option_e,
+--   correct_answer,
+--   difficulty,
+--   normalized_stem,
+--   source,
+--   generation_job_id,
+--   measurement_focus,
+--   is_verified,
+--   verified_by,
+--   verified_at
+-- ) values (
+--   :exam_id,
+--   :subject_id,
+--   :topic_id,
+--   :question_text,
+--   :option_a,
+--   :option_b,
+--   :option_c,
+--   :option_d,
+--   :option_e,
+--   :correct_answer,
+--   :difficulty,
+--   :normalized_stem,
+--   'ai_generated',
+--   :job_id,
+--   :measurement_focus,
+--   false,
+--   null,
+--   null
+-- ) returning id;
+--
+-- insert into public.question_options (question_id, option_key, option_text)
+-- values
+--   (:question_id, 'A', :option_a),
+--   (:question_id, 'B', :option_b),
+--   (:question_id, 'C', :option_c),
+--   (:question_id, 'D', :option_d),
+--   (:question_id, 'E', :option_e);
+--
+-- update public.question_generation_jobs
+-- set
+--   generated_count = :generated_count,
+--   inserted_count = :inserted_count,
+--   duplicate_count = :duplicate_count,
+--   failed_count = :failed_count,
+--   status = :status,
+--   completed_at = now(),
+--   updated_at = now()
+-- where id = :job_id;
+--
+-- commit;
