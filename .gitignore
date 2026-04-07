@@ -59,3 +59,7 @@ android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 
 .tmp_appdata/
+
+.env
+.env.*
+*.env
