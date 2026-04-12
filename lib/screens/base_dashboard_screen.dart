@@ -1141,6 +1141,7 @@ class _WeeklyBars extends StatelessWidget {
   Widget build(BuildContext context) {
     final max =
         values.isEmpty ? 1 : values.reduce((a, b) => a > b ? a : b).clamp(1, 999);
+    // P=Pazartesi, S=Salı, Ç=Çarşamba, P=Perşembe, C=Cuma, C=Cumartesi, P=Pazar
     const labels = ['P', 'S', 'Ç', 'P', 'C', 'C', 'P'];
 
     return SizedBox(

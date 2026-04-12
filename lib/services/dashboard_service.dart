@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/dashboard_summary.dart';
@@ -14,9 +15,9 @@ class DashboardService {
       await _client.rpc('generate_daily_tasks_for_today', params: {
         'p_exam_id': examId,
       });
-    } catch (_) {
-      // Silently ignore if the RPC does not exist yet or returns an error.
-      // The dashboard will still render without daily tasks.
+    } catch (e) {
+      // The RPC may not exist yet; the dashboard will still render.
+      debugPrint('DashboardService.generateDailyTasks: $e');
     }
   }
 
@@ -42,8 +43,9 @@ class DashboardService {
       }
 
       return DashboardSummary(examId: examId);
-    } catch (_) {
+    } catch (e) {
       // If the RPC does not exist yet, return an empty summary.
+      debugPrint('DashboardService.getDashboardSummary: $e');
       return DashboardSummary(examId: examId);
     }
   }
@@ -56,7 +58,8 @@ class DashboardService {
         'p_task_id': taskId,
       });
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('DashboardService.completeDailyTask: $e');
       return false;
     }
   }

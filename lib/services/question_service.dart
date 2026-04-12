@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/generated_question.dart';
@@ -315,8 +316,9 @@ class QuestionService {
 
     try {
       await _client.from('mock_attempt_questions').insert(rows);
-    } catch (_) {
-      // If the table does not exist yet, silently ignore.
+    } catch (e) {
+      // The table may not exist yet; log but do not block mock completion.
+      debugPrint('saveMockAttemptQuestions: $e');
     }
   }
 
