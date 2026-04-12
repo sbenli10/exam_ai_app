@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/generated_question.dart';
@@ -246,7 +247,7 @@ class QuestionService {
     });
   }
 
-  Future<void> saveMockAttempt({
+  Future<String?> saveMockAttempt({
     required String examId,
     required String title,
     required String mockType,
@@ -265,7 +266,7 @@ class QuestionService {
       throw const AuthException('No authenticated user found.');
     }
 
-    await _client.from('mock_attempts').insert({
+    final rows = await _client.from('mock_attempts').insert({
       'user_id': userId,
       'exam_id': examId,
       'subject_id': subjectId,
@@ -279,7 +280,46 @@ class QuestionService {
       'duration_seconds': durationSeconds,
       'started_at': (startedAt ?? DateTime.now()).toIso8601String(),
       'completed_at': (completedAt ?? DateTime.now()).toIso8601String(),
-    });
+    }).select('id');
+
+    if (rows.isNotEmpty) {
+      return rows.first['id'] as String?;
+    }
+    return null;
+  }
+
+  /// Bulk inserts per-question results into `mock_attempt_questions`.
+  Future<void> saveMockAttemptQuestions({
+    required String mockAttemptId,
+    required List<Question> questions,
+    required Map<int, String> selectedAnswers,
+  }) async {
+    if (questions.isEmpty) return;
+
+    final rows = <Map<String, dynamic>>[];
+    for (var i = 0; i < questions.length; i++) {
+      final q = questions[i];
+      final selected = selectedAnswers[i];
+      final isBlank = selected == null;
+      final isCorrect = !isBlank && selected == q.correctAnswer;
+
+      rows.add({
+        'mock_attempt_id': mockAttemptId,
+        'question_id': q.id,
+        'order_no': i + 1,
+        'selected_answer': selected,
+        'correct_answer': q.correctAnswer ?? '',
+        'is_correct': isCorrect,
+        'is_blank': isBlank,
+      });
+    }
+
+    try {
+      await _client.from('mock_attempt_questions').insert(rows);
+    } catch (e) {
+      // The table may not exist yet; log but do not block mock completion.
+      debugPrint('saveMockAttemptQuestions: $e');
+    }
   }
 
   Future<Map<String, dynamic>?> fetchLatestMockAttempt({
