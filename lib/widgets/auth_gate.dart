@@ -97,7 +97,7 @@ class AuthGate extends StatelessWidget {
           );
         }
 
-        return const LoginScreen();
+        return const PremiumLoginScreen();
       },
     );
   }

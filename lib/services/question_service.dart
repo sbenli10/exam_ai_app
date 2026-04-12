@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/generated_question.dart';
 import '../models/question.dart';
 import '../models/topic_attempt_stat.dart';
+import '../screens/profile_screen.dart' show QuestionAttemptItem;
 
 class QuestionService {
   QuestionService({SupabaseClient? client}) : _client = client ?? Supabase.instance.client;
@@ -617,5 +618,51 @@ class QuestionService {
     }
 
     return uniqueByQuestionId.values.toList();
+  }
+
+  Future<List<QuestionAttemptItem>> fetchMyRecentAttempts({
+    required String examId,
+    int limit = 50,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AuthException('No authenticated user found.');
+    }
+
+    final rows = await _client
+        .from('question_attempts')
+        .select('''
+          created_at,
+          is_correct,
+          is_blank,
+          topic_id,
+          topics (
+            name
+          )
+        ''')
+        .eq('user_id', userId)
+        .eq('exam_id', examId)
+        .order('created_at', ascending: false)
+        .limit(limit);
+
+    return rows.map<QuestionAttemptItem>((row) {
+      final item = Map<String, dynamic>.from(row);
+      final topicRaw = item['topics'];
+
+      String? topicName;
+      if (topicRaw is Map) {
+        topicName = topicRaw['name'] as String?;
+      } else if (topicRaw is List && topicRaw.isNotEmpty && topicRaw.first is Map) {
+        topicName = (topicRaw.first as Map)['name'] as String?;
+      }
+
+      return QuestionAttemptItem(
+        createdAt: DateTime.parse(item['created_at'] as String),
+        isCorrect: item['is_correct'] as bool? ?? false,
+        isBlank: item['is_blank'] as bool? ?? false,
+        topicId: item['topic_id'] as String?,
+        topicName: topicName,
+      );
+    }).toList();
   }
 }

@@ -31,6 +31,8 @@ class ExamAIApp extends StatelessWidget {
       title: 'Exam AI',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system, // cihaz ne ise onu kullanır
       home: home ?? const AuthGate(),
     );
   }

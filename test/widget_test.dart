@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   testWidgets('App can render login screen shell', (WidgetTester tester) async {
     await tester.pumpWidget(
-      const ExamAIApp(home: LoginScreen()),
+      const ExamAIApp(home: PremiumLoginScreen()),
     );
 
     expect(find.text('Exam AI'), findsOneWidget);

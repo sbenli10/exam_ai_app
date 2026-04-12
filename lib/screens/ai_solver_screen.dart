@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -20,11 +21,11 @@ class _AiQuestionSolverScreenState extends State<AiQuestionSolverScreen> {
 
   CameraController? _cameraController;
   Future<void>? _cameraInitialization;
-  XFile? _capturedImage;
+  XFile? _selectedImage;
   AiSolution? _solution;
+  String? _errorMessage;
   bool _isAnalyzing = false;
   bool _isOpeningMedia = false;
-  String? _errorMessage;
 
   @override
   void initState() {
@@ -41,193 +42,62 @@ class _AiQuestionSolverScreenState extends State<AiQuestionSolverScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: const Color(0xFFF6F8FC),
       appBar: AppBar(
-        title: const Text('AI Soru Çöz'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'AI Soru Çözümü',
+          style: TextStyle(
+            color: Color(0xFF0F172A),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _HeaderSection(imageSelected: _capturedImage != null),
-              const SizedBox(height: 20),
-              _buildCameraSection(),
-              const SizedBox(height: 18),
-              _buildPrimaryActions(),
-              if (_isAnalyzing) ...[
-                const SizedBox(height: 18),
-                const _AnalyzingCard(),
-              ],
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 18),
-                _ErrorCard(message: _errorMessage!),
-              ],
-              if (_solution != null) ...[
-                const SizedBox(height: 18),
-                _SolutionCard(solution: _solution!),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCameraSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Soru Önizleme',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF111827),
-                ),
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: AspectRatio(
-              aspectRatio: 3 / 4,
-              child: _capturedImage != null
-                  ? Image.file(
-                      File(_capturedImage!.path),
-                      fit: BoxFit.cover,
-                    )
-                  : FutureBuilder<void>(
-                      future: _cameraInitialization,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState != ConnectionState.done) {
-                          return const _CameraPlaceholder(
-                            title: 'Kamera hazırlanıyor',
-                            subtitle: 'Soru fotoğrafını çekmek için kamera başlatılıyor.',
-                            loading: true,
-                          );
-                        }
-
-                        if (snapshot.hasError || _cameraController == null) {
-                          return const _CameraPlaceholder(
-                            title: 'Kamera açılamadı',
-                            subtitle: 'Galeri seçeneğini kullanarak soru görseli ekleyebilirsin.',
-                          );
-                        }
-
-                        return Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CameraPreview(_cameraController!),
-                            Positioned(
-                              left: 16,
-                              right: 16,
-                              bottom: 16,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.42),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: const Text(
-                                  'Canlı kamera önizlemesi. Fotoğraf Çek butonu bu görüntüyü kaydeder.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.35,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPrimaryActions() {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton.icon(
-            onPressed: _isAnalyzing || _isOpeningMedia ? null : _captureWithSystemCamera,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3F51B5),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-            ),
-            icon: const Icon(Icons.camera_alt_rounded),
-            label: const Text(
-              'Fotoğraf Çek',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _isAnalyzing || _isOpeningMedia ? null : _pickFromGallery,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFFD9DFEF)),
-                  foregroundColor: const Color(0xFF334155),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                icon: const Icon(Icons.photo_library_outlined),
-                label: const Text('Galeriden Seç'),
-              ),
+            const _AiHeroCard(),
+            const SizedBox(height: 14),
+            _PreviewCard(
+              image: _selectedImage,
+              cameraInitialization: _cameraInitialization,
+              cameraController: _cameraController,
             ),
-            if (_capturedImage != null) ...[
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _isAnalyzing || _isOpeningMedia ? null : _analyzeCurrentImage,
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFBFC8FF)),
-                    foregroundColor: const Color(0xFF4054C8),
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  icon: const Icon(Icons.auto_awesome_rounded),
-                  label: const Text('AI ile Çöz'),
-                ),
+            const SizedBox(height: 14),
+            _ActionButtons(
+              hasImage: _selectedImage != null,
+              isBusy: _isAnalyzing || _isOpeningMedia,
+              onCameraTap: _captureWithSystemCamera,
+              onGalleryTap: _pickFromGallery,
+              onAnalyzeTap: _analyzeCurrentImage,
+            ),
+            if (_isAnalyzing) ...[
+              const SizedBox(height: 14),
+              const _AnalyzingCard(),
+            ],
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 14),
+              _StatusCard(
+                title: 'Bir sorun oluştu',
+                message: _errorMessage!,
+                color: const Color(0xFFBE123C),
+                background: const Color(0xFFFFF1F2),
               ),
+            ],
+            if (_solution != null) ...[
+              const SizedBox(height: 14),
+              _SolutionOverviewCard(solution: _solution!),
+              const SizedBox(height: 14),
+              _SolutionStepsCard(solution: _solution!),
+              const SizedBox(height: 14),
+              _ResultCard(solution: _solution!),
             ],
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -250,47 +120,8 @@ class _AiQuestionSolverScreenState extends State<AiQuestionSolverScreen> {
     await controller.setFlashMode(FlashMode.off);
   }
 
-  Future<void> _captureQuestion() async {
-    if (_isOpeningMedia) {
-      return;
-    }
-
-    final controller = _cameraController;
-    if (controller == null || !controller.value.isInitialized) {
-      setState(() {
-        _errorMessage = 'Kamera hazır değil. Birkaç saniye sonra tekrar deneyin.';
-      });
-      return;
-    }
-
-    try {
-      setState(() {
-        _isOpeningMedia = true;
-      });
-      final image = await controller.takePicture();
-      setState(() {
-        _capturedImage = image;
-        _solution = null;
-        _errorMessage = null;
-      });
-      await _analyzeCurrentImage();
-    } catch (error) {
-      setState(() {
-        _errorMessage = 'Fotoğraf çekilirken hata oluştu: $error';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isOpeningMedia = false;
-        });
-      }
-    }
-  }
-
   Future<void> _captureWithSystemCamera() async {
-    if (_isOpeningMedia) {
-      return;
-    }
+    if (_isOpeningMedia) return;
 
     try {
       setState(() {
@@ -303,33 +134,27 @@ class _AiQuestionSolverScreenState extends State<AiQuestionSolverScreen> {
         imageQuality: 95,
       );
 
-      if (image == null) {
-        return;
-      }
+      if (image == null) return;
 
       setState(() {
-        _capturedImage = image;
+        _selectedImage = image;
         _solution = null;
       });
 
       await _analyzeCurrentImage();
     } catch (error) {
       setState(() {
-        _errorMessage = 'Kamera açılırken hata oluştu: $error';
+        _errorMessage = 'Kamera açılırken bir sorun oluştu. Lütfen tekrar dene.';
       });
     } finally {
       if (mounted) {
-        setState(() {
-          _isOpeningMedia = false;
-        });
+        setState(() => _isOpeningMedia = false);
       }
     }
   }
 
   Future<void> _pickFromGallery() async {
-    if (_isOpeningMedia) {
-      return;
-    }
+    if (_isOpeningMedia) return;
 
     try {
       setState(() {
@@ -342,35 +167,34 @@ class _AiQuestionSolverScreenState extends State<AiQuestionSolverScreen> {
         imageQuality: 95,
       );
 
-      if (image == null) {
-        return;
-      }
+      if (image == null) return;
 
       setState(() {
-        _capturedImage = image;
+        _selectedImage = image;
         _solution = null;
-        _errorMessage = null;
       });
+
       await _analyzeCurrentImage();
     } catch (error) {
-      final message = error.toString().contains('already_active')
-          ? 'Galeri seçici zaten açık görünüyor. Emülatörde bu durum sık olur. Ekranı kapatıp tekrar deneyin veya gerçek cihaz kullanın.'
-          : 'Görsel seçilirken hata oluştu: $error';
+      final raw = error.toString().toLowerCase();
       setState(() {
-        _errorMessage = message;
+        _errorMessage = raw.contains('already_active')
+            ? 'Galeri zaten açık görünüyor. Pencereyi kapatıp yeniden deneyebilirsin.'
+            : 'Görsel seçilirken bir sorun oluştu. Lütfen tekrar dene.';
       });
     } finally {
       if (mounted) {
-        setState(() {
-          _isOpeningMedia = false;
-        });
+        setState(() => _isOpeningMedia = false);
       }
     }
   }
 
   Future<void> _analyzeCurrentImage() async {
-    final image = _capturedImage;
+    final image = _selectedImage;
     if (image == null) {
+      setState(() {
+        _errorMessage = 'Önce bir soru fotoğrafı seçmelisin.';
+      });
       return;
     }
 
@@ -387,107 +211,74 @@ class _AiQuestionSolverScreenState extends State<AiQuestionSolverScreen> {
         mimeType: _guessMimeType(image.path),
       );
 
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _solution = solution;
-      });
+      if (!mounted) return;
+      setState(() => _solution = solution);
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() {
-        _errorMessage = 'AI analizi başarısız oldu: $error';
+        _errorMessage =
+            'AI bu soruyu yorumlarken zorlandı. Daha net bir fotoğrafla yeniden deneyebilirsin.';
       });
     } finally {
       if (mounted) {
-        setState(() {
-          _isAnalyzing = false;
-        });
+        setState(() => _isAnalyzing = false);
       }
     }
   }
 
   String _guessMimeType(String path) {
     final lower = path.toLowerCase();
-    if (lower.endsWith('.png')) {
-      return 'image/png';
-    }
-    if (lower.endsWith('.webp')) {
-      return 'image/webp';
-    }
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
     return 'image/jpeg';
   }
 }
 
-class _HeaderSection extends StatelessWidget {
-  const _HeaderSection({
-    required this.imageSelected,
-  });
-
-  final bool imageSelected;
+class _AiHeroCard extends StatelessWidget {
+  const _AiHeroCard();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF2D3A8C), Color(0xFF5A6BFF)],
+          colors: [Color(0xFF111827), Color(0xFF0F766E)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withOpacity(0.18),
+            blurRadius: 26,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: const Text(
-              'AI Vision Solver',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
+        children: const [
+          _HeroBadge(),
+          SizedBox(height: 14),
+          Text(
+            'Soruyu fotoğraftan çözdür',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              height: 1.1,
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 10),
           Text(
-            'AI Soru Çöz',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Sorunun fotoğrafını çek ve çözümü öğren.',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white.withOpacity(0.90),
-                  height: 1.45,
-                ),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              const _HeroMiniCard(
-                icon: Icons.camera_alt_rounded,
-                label: 'Fotoğraf çek',
-              ),
-              const SizedBox(width: 12),
-              _HeroMiniCard(
-                icon: imageSelected ? Icons.check_circle_rounded : Icons.auto_awesome_rounded,
-                label: imageSelected ? 'Analize hazır' : 'AI çözüm üret',
-              ),
-            ],
+            'Kamera ile çek, galeriden seç veya ekran görüntüsü yükle. AI çözüm adımlarını öğrenci dostu şekilde anlatsın.',
+            style: TextStyle(
+              color: Color(0xFFE2E8F0),
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              height: 1.5,
+            ),
           ),
         ],
       ),
@@ -495,34 +286,449 @@ class _HeaderSection extends StatelessWidget {
   }
 }
 
-class _HeroMiniCard extends StatelessWidget {
-  const _HeroMiniCard({
-    required this.icon,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String label;
+class _HeroBadge extends StatelessWidget {
+  const _HeroBadge();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: Colors.white),
-          const SizedBox(width: 8),
+        children: const [
+          Icon(CupertinoIcons.sparkles, size: 14, color: Colors.white),
+          SizedBox(width: 8),
           Text(
-            label,
-            style: const TextStyle(
+            'AI destekli çözüm',
+            style: TextStyle(
               color: Colors.white,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w800,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewCard extends StatelessWidget {
+  const _PreviewCard({
+    required this.image,
+    required this.cameraInitialization,
+    required this.cameraController,
+  });
+
+  final XFile? image;
+  final Future<void>? cameraInitialization;
+  final CameraController? cameraController;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Soru önizleme alanı',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF0F172A),
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Seçtiğin görsel burada görünür. Fotoğrafın net olması, çözüm kalitesini artırır.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
+                  height: 1.45,
+                ),
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: AspectRatio(
+              aspectRatio: 3 / 4,
+              child: image != null
+                  ? Image.file(File(image!.path), fit: BoxFit.cover)
+                  : FutureBuilder<void>(
+                      future: cameraInitialization,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState != ConnectionState.done) {
+                          return const _CameraPlaceholder(
+                            title: 'Kamera hazırlanıyor',
+                            subtitle: 'Birazdan canlı önizleme burada görünecek.',
+                            loading: true,
+                          );
+                        }
+
+                        if (snapshot.hasError || cameraController == null) {
+                          return const _CameraPlaceholder(
+                            title: 'Kamera kullanılamadı',
+                            subtitle: 'İstersen galeriden görsel seçerek devam edebilirsin.',
+                          );
+                        }
+
+                        return Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            CameraPreview(cameraController!),
+                            Positioned(
+                              left: 14,
+                              right: 14,
+                              bottom: 14,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.42),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: const Text(
+                                  'Canlı kamera önizlemesi açık. Fotoğraf çektiğinde soru otomatik analiz edilir.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButtons extends StatelessWidget {
+  const _ActionButtons({
+    required this.hasImage,
+    required this.isBusy,
+    required this.onCameraTap,
+    required this.onGalleryTap,
+    required this.onAnalyzeTap,
+  });
+
+  final bool hasImage;
+  final bool isBusy;
+  final VoidCallback onCameraTap;
+  final VoidCallback onGalleryTap;
+  final VoidCallback onAnalyzeTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: FilledButton.icon(
+            onPressed: isBusy ? null : onCameraTap,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
+            icon: const Icon(CupertinoIcons.camera_fill),
+            label: const Text(
+              'Fotoğraf çek',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: isBusy ? null : onGalleryTap,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  foregroundColor: const Color(0xFF334155),
+                  side: const BorderSide(color: Color(0xFFD9DFEF)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                icon: const Icon(CupertinoIcons.photo_on_rectangle),
+                label: const Text('Galeriden seç'),
+              ),
+            ),
+            if (hasImage) ...[
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: isBusy ? null : onAnalyzeTap,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    foregroundColor: const Color(0xFF2563EB),
+                    side: const BorderSide(color: Color(0xFFBFD3FF)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  icon: const Icon(CupertinoIcons.sparkles),
+                  label: const Text('Yeniden analiz et'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _AnalyzingCard extends StatelessWidget {
+  const _AnalyzingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _StatusCard(
+      title: 'AI çözüm hazırlıyor',
+      message: 'Fotoğrafındaki soruyu inceliyor, konuyu buluyor ve çözüm adımlarını hazırlıyor.',
+      color: Color(0xFF2563EB),
+      background: Color(0xFFEFF6FF),
+      loading: true,
+    );
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({
+    required this.title,
+    required this.message,
+    required this.color,
+    required this.background,
+    this.loading = false,
+  });
+
+  final String title;
+  final String message;
+  final Color color;
+  final Color background;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: color.withOpacity(0.20)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (loading)
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.6,
+                color: color,
+              ),
+            )
+          else
+            Icon(CupertinoIcons.info_circle_fill, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF475569),
+                        fontWeight: FontWeight.w600,
+                        height: 1.5,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SolutionOverviewCard extends StatelessWidget {
+  const _SolutionOverviewCard({required this.solution});
+
+  final AiSolution solution;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0ECFF),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  CupertinoIcons.sparkles,
+                  color: Color(0xFF2563EB),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'AI çözüm özeti',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: const Color(0xFF0F172A),
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Tespit edilen konu',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: const Color(0xFF64748B),
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              solution.topic,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: const Color(0xFF1D4ED8),
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SolutionStepsCard extends StatelessWidget {
+  const _SolutionStepsCard({required this.solution});
+
+  final AiSolution solution;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Çözüm adımları',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFF0F172A),
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 14),
+          ...solution.steps.asMap().entries.map(
+                (entry) => Padding(
+                  padding: EdgeInsets.only(bottom: entry.key == solution.steps.length - 1 ? 0 : 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0ECFF),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${entry.key + 1}',
+                          style: const TextStyle(
+                            color: Color(0xFF2563EB),
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          entry.value,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: const Color(0xFF334155),
+                                height: 1.55,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResultCard extends StatelessWidget {
+  const _ResultCard({required this.solution});
+
+  final AiSolution solution;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SoftCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sonuç',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFF0F172A),
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            solution.result,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: const Color(0xFF0F172A),
+                  height: 1.6,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
         ],
       ),
@@ -555,7 +761,7 @@ class _CameraPlaceholder extends StatelessWidget {
                 const CircularProgressIndicator(color: Colors.white)
               else
                 const Icon(
-                  Icons.camera_alt_outlined,
+                  CupertinoIcons.camera,
                   color: Colors.white,
                   size: 44,
                 ),
@@ -565,7 +771,7 @@ class _CameraPlaceholder extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Colors.white,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w900,
                     ),
               ),
               const SizedBox(height: 8),
@@ -573,8 +779,8 @@ class _CameraPlaceholder extends StatelessWidget {
                 subtitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withOpacity(0.75),
-                      height: 1.5,
+                      color: Colors.white.withOpacity(0.78),
+                      height: 1.45,
                     ),
               ),
             ],
@@ -585,225 +791,27 @@ class _CameraPlaceholder extends StatelessWidget {
   }
 }
 
-class _AnalyzingCard extends StatelessWidget {
-  const _AnalyzingCard();
+class _SoftCard extends StatelessWidget {
+  const _SoftCard({required this.child});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const SizedBox(
-            width: 28,
-            height: 28,
-            child: CircularProgressIndicator(strokeWidth: 3),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              'AI soruyu analiz ediyor...',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: const Color(0xFF111827),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({
-    required this.message,
-  });
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFECACA)),
-      ),
-      child: Text(
-        message,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF991B1B),
-              height: 1.5,
-            ),
-      ),
-    );
-  }
-}
-
-class _SolutionCard extends StatelessWidget {
-  const _SolutionCard({
-    required this.solution,
-  });
-
-  final AiSolution solution;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0E7FF),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Color(0xFF4054C8),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'AI Çözüm',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: const Color(0xFF111827),
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          _InfoSection(
-            title: 'Sorunun Konusu',
-            child: Text(
-              solution.topic,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: const Color(0xFF1E3A8A),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          _InfoSection(
-            title: 'Çözüm Adımları',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var i = 0; i < solution.steps.length; i++) ...[
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(top: 2),
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE0E7FF),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${i + 1}',
-                            style: const TextStyle(
-                              color: Color(0xFF4054C8),
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          solution.steps[i],
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: const Color(0xFF334155),
-                                height: 1.6,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (i != solution.steps.length - 1) const SizedBox(height: 12),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          _InfoSection(
-            title: 'Sonuç',
-            child: Text(
-              solution.result,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: const Color(0xFF0F172A),
-                    fontWeight: FontWeight.w700,
-                    height: 1.55,
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoSection extends StatelessWidget {
-  const _InfoSection({
-    required this.title,
-    required this.child,
-  });
-
-  final String title;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xFF111827),
-                fontWeight: FontWeight.w800,
-              ),
-        ),
-        const SizedBox(height: 10),
-        child,
-      ],
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }
