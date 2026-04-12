@@ -4,7 +4,10 @@ import '../models/exam_type.dart';
 import '../services/auth_service.dart';
 import '../services/exam_catalog_service.dart';
 import 'ai_solver_screen.dart';
-import 'exam_dashboard_screen.dart';
+import 'ales_dashboard_screen.dart';
+import 'kpss_dashboard_screen.dart';
+import 'lgs_dashboard_screen.dart';
+import 'yks_dashboard_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -112,10 +115,26 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _openDashboard(BuildContext context, ExamType examType) {
+    final Widget screen;
+    switch (examType.title.toUpperCase()) {
+      case 'YKS':
+        screen = const YksDashboardScreen();
+        break;
+      case 'LGS':
+        screen = const LgsDashboardScreen();
+        break;
+      case 'KPSS':
+        screen = const KpssDashboardScreen();
+        break;
+      case 'ALES':
+        screen = const AlesDashboardScreen();
+        break;
+      default:
+        screen = const YksDashboardScreen();
+    }
+
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ExamDashboardScreen(examType: examType),
-      ),
+      MaterialPageRoute(builder: (_) => screen),
     );
   }
 

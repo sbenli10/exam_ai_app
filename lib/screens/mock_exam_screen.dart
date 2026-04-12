@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/exam_type.dart';
 import '../models/question.dart';
+import '../services/ai_analysis_service.dart';
 import '../services/exam_catalog_service.dart';
 import '../services/question_service.dart';
 
@@ -113,7 +114,7 @@ class _MockExamScreenState extends State<MockExamScreen> {
     final wrongCount = _questions.length - correctCount - blankCount;
 
     try {
-      await _questionService.saveMockAttempt(
+      final mockAttemptId = await _questionService.saveMockAttempt(
         examId: _examId!,
         title: _mockTitle(),
         mockType: widget.mockTypeOverride ??
@@ -134,6 +135,23 @@ class _MockExamScreenState extends State<MockExamScreen> {
         startedAt: _startedAt,
         completedAt: DateTime.now(),
       );
+
+      // Bulk insert per-question results into mock_attempt_questions.
+      if (mockAttemptId != null) {
+        await _questionService.saveMockAttemptQuestions(
+          mockAttemptId: mockAttemptId,
+          questions: _questions,
+          selectedAnswers: _selectedAnswers,
+        );
+
+        // Trigger AI analysis stub (no-op while feature flag is disabled).
+        final aiService = AiAnalysisService();
+        await aiService.analyzeMock(mockAttemptId: mockAttemptId);
+        await aiService.generateDailyPlanAfterMock(
+          examId: _examId!,
+          mockAttemptId: mockAttemptId,
+        );
+      }
 
       if (!mounted) {
         return;
