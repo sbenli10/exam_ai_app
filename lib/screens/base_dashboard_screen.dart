@@ -11,6 +11,7 @@ import '../services/exam_catalog_service.dart';
 import 'full_tyt_exam_screen.dart';
 import 'mentor_analysis_screen.dart';
 import 'mock_exam_screen.dart';
+import 'profile_screen.dart';
 import 'question_solver_screen.dart';
 import 'topic_exam_picker_screen.dart';
 import 'topics_screen.dart';
@@ -37,6 +38,7 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
 
   late Future<DashboardSummary?> _summaryFuture;
   String? _examId;
+  int _activeTabIndex = 0;
 
   ExamType get _examType => widget.config.examType;
 
@@ -125,6 +127,7 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
   }
 
   void _onBottomTap(int index, DashboardSummary summary) {
+    setState(() => _activeTabIndex = index);
     switch (index) {
       case 1:
         Navigator.push(
@@ -162,6 +165,14 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
               todayPoints: summary.todayPoints,
               streak: summary.streak,
             ),
+          ),
+        );
+        break;
+      case 4:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const ProfileScreen(),
           ),
         );
         break;
@@ -303,7 +314,7 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
 
                                   // ── Action tiles from config ──
                                   SizedBox(
-                                    height: 132,
+                                    height: 148,
                                     child: ListView(
                                       scrollDirection: Axis.horizontal,
                                       children: _buildActionTiles(),
@@ -403,6 +414,7 @@ class _BaseDashboardScreenState extends State<BaseDashboardScreen> {
                             ),
                             _BottomTabBar(
                               labels: widget.config.bottomLabels,
+                              activeIndex: _activeTabIndex,
                               onTap: (index) =>
                                   _onBottomTap(index, summary),
                             ),
@@ -1078,7 +1090,7 @@ class _ActionTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 110,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.94),
           borderRadius: BorderRadius.circular(22),
@@ -1092,19 +1104,18 @@ class _ActionTile extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
-              width: 46,
-              height: 46,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
                 color: tint,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(16),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, color: const Color(0xFF2563EB)),
+              child: Icon(icon, color: const Color(0xFF2563EB), size: 20),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               title,
               maxLines: 1,
@@ -1114,15 +1125,17 @@ class _ActionTile extends StatelessWidget {
                 color: const Color(0xFF1E293B),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF64748B),
-                fontWeight: FontWeight.w600,
-                height: 1.25,
+            const SizedBox(height: 2),
+            Flexible(
+              child: Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
+                  height: 1.25,
+                ),
               ),
             ),
           ],
@@ -1290,10 +1303,12 @@ class _BottomTabBar extends StatelessWidget {
   const _BottomTabBar({
     required this.labels,
     required this.onTap,
+    this.activeIndex = 0,
   });
 
   final List<String> labels;
   final ValueChanged<int> onTap;
+  final int activeIndex;
 
   static const _icons = [
     CupertinoIcons.house_fill,
@@ -1325,7 +1340,7 @@ class _BottomTabBar extends StatelessWidget {
           return _BottomItem(
             icon: _icons[i],
             label: labels[i],
-            active: i == 0,
+            active: i == activeIndex,
             onTap: () => onTap(i),
           );
         }),
